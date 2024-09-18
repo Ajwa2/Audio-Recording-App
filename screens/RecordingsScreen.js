@@ -5,6 +5,7 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { FontAwesome } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Swipeable } from "react-native-gesture-handler";
 
 export default function RecordingsScreen({ navigation, route }) {
     const [recordings, setRecordings] = useState([]);
@@ -27,6 +28,12 @@ export default function RecordingsScreen({ navigation, route }) {
         //     saveRecordings([...recordings, newRecording]);
         // }
     }, []);
+
+    const deleteRecording = async (uri) => {
+        const updatedRecordings = recordings.filter((recording) => recording.uri !== uri);
+        await AsyncStorage.setItem('recordings', JSON.stringify(updatedRecordings));
+        setRecordings(updatedRecordings);
+    };
 
     const saveRecordings = async (recordings) => {
         try {
@@ -79,17 +86,33 @@ export default function RecordingsScreen({ navigation, route }) {
     };
 
     const renderRecordingItem = ({ item, index }) => (
-        <View style={styles.recordingItem}>
-            <TouchableOpacity onPress={() => playRecording(item.uri, index)}>
-                <View style={{backgroundColor:'#E4E8EA',padding:10,borderRadius:80,alignItems:'center',justifyContent:'center',}}>
-                    <FontAwesome name={playingIndex === index ? "pause" : "play"} size={24} color={playingIndex === index ? "blue" : "#4C7EF5"} />
-                </View>
+        <Swipeable renderRightActions={() => (
+            <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => {
+                    Alert.alert(
+                        "Delete Recording",
+                        "Are you sure you want to delete this recording?",
+                        [{ text: "Cancel", style: "cancel" },{ text: "Delete", onPress: () => deleteRecording(item.uri) },]
+                    );
+                }}
+            >
+                <FontAwesome name="trash" size={24} color="white" />
             </TouchableOpacity>
-            <Text style={styles.recordingName}>{item.name}</Text>
-            <TouchableOpacity onPress={() => saveFile(item.uri, item.name)}>
-                <FontAwesome name="download" size={25} color="#4C7E" />
-            </TouchableOpacity>
-        </View>
+        )}>
+            <View style={styles.recordingItem}>
+                <TouchableOpacity onPress={() => playRecording(item.uri, index)}>
+                    <View style={{backgroundColor:'#E4E8EA',padding:10,borderRadius:80,alignItems:'center',justifyContent:'center',}}>
+                        <FontAwesome name={playingIndex === index ? "pause" : "play"} size={24} color={playingIndex === index ? "blue" : "#4C7EF5"} />
+                    </View>
+                </TouchableOpacity>
+                <Text style={styles.recordingName}>{item.name}</Text>
+                <TouchableOpacity onPress={() => saveFile(item.uri, item.name)}>
+                    <FontAwesome name="download" size={25} color="#4C7E" />
+                </TouchableOpacity>
+            </View>
+        </Swipeable>
+        
     );
 
     return (
@@ -148,5 +171,15 @@ const styles = StyleSheet.create({
     recordButtonText: {
         color: "white",
         fontSize: 18,
+    },
+    deleteButton: {
+        backgroundColor: "red",
+        justifyContent: "center",
+        alignItems: "center",
+        width: 70,
+        height: 70,
+        borderRadius: 10,
+        marginVertical: 10,
+        marginLeft: 10,
     },
 });
